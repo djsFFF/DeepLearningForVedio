@@ -1,13 +1,27 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include "opencv2/opencv_modules.hpp"
+#include <opencv2/core/utility.hpp>
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/stitching/detail/autocalib.hpp"
+#include "opencv2/stitching/detail/blenders.hpp"
+#include "opencv2/stitching/detail/timelapsers.hpp"
+#include "opencv2/stitching/detail/camera.hpp"
+#include "opencv2/stitching/detail/exposure_compensate.hpp"
+#include "opencv2/stitching/detail/matchers.hpp"
+#include "opencv2/stitching/detail/motion_estimators.hpp"
+#include "opencv2/stitching/detail/seam_finders.hpp"
+#include "opencv2/stitching/detail/warpers.hpp"
+#include "opencv2/stitching/warpers.hpp"
 #include "opencv2/opencv.hpp"
 
 using namespace std;
 using namespace cv;
-using namespace cuda;
 using namespace cv::detail;
 
+vector<String> img_names;
 bool preview = false;
 bool try_cuda = true;
 //图像，面积为work_megapix*100000
@@ -18,7 +32,22 @@ double compose_megapix = -1;
 float conf_thresh = 1.f;
 string features_type = "surf";
 string matcher_type = "homography";
+string estimator_type = "homography";
+string ba_cost_func = "ray";
+string ba_refine_mask = "xxxxx";
+bool do_wave_correct = true;
+WaveCorrectKind wave_correct = detail::WAVE_CORRECT_HORIZ;
+bool save_graph = false;
+std::string save_graph_to;
+string warp_type = "spherical";
+int expos_comp_type = ExposureCompensator::GAIN_BLOCKS;
 float match_conf = 0.65f;
+string seam_find_type = "gc_color";
+int blend_type = Blender::MULTI_BAND;
+int timelapse_type = Timelapser::AS_IS;
+float blend_strength = 5;
+string result_name = "result.jpg";
+bool timelapse = false;
 int range_width = -1;
 
 static int parseArgs()
@@ -30,7 +59,6 @@ static int parseArgs()
 }
 
 void OptimizeSeam(Mat& img1, Mat& trans, Mat& dst);
-void CalcCorners(const Mat& H, const Mat& src);
 
 typedef struct
 {
@@ -39,158 +67,8 @@ typedef struct
 	Point2f right_top;
 	Point2f right_bottom;
 }four_corners_t;
+
 four_corners_t corners;
-
-int main(void)
-{
-	int64 app_start_time = getTickCount();
-	Mat image_1 = imread("E:\\opencv\\my_stitching\\my_stitching\\image\\test1.jpg");
-	Mat image_2 = imread("E:\\opencv\\my_stitching\\my_stitching\\image\\test2.jpg");
-
-	//寻找特征点
-	cout << "特征点提取" << endl;
-	int64 t = getTickCount();
-	
-	GpuMat image_gpu_1, image_gpu_2, gray_image_gpu_1, gray_image_gpu_2;
-	GpuMat keypoints_gpu_1, keypoints_gpu_2, descriptors_gpu_1, descriptors_gpu_2;
-	UMat descriptors_1, descriptors_2;
-	vector<KeyPoint> keypoints_1, keypoints_2;
-	SURF_CUDA surf;
-
-	CV_Assert(image_1.depth() == CV_8U);
-	CV_Assert(image_2.depth() == CV_8U);
-	image_gpu_1.upload(image_1);
-	image_gpu_2.upload(image_2);
-	cv::cuda::cvtColor(image_gpu_1, gray_image_gpu_1, COLOR_BGR2GRAY);
-	cv::cuda::cvtColor(image_gpu_2, gray_image_gpu_2, COLOR_BGR2GRAY);
-	surf.nOctaves = 3;
-	surf.nOctaveLayers = 4;
-	surf.upright = false;
-	surf(gray_image_gpu_1, GpuMat(), keypoints_gpu_1);
-	surf(gray_image_gpu_2, GpuMat(), keypoints_gpu_2);
-
-	surf.nOctaves = 4;
-	surf.nOctaveLayers = 2;
-	surf.upright = true;
-	surf(gray_image_gpu_1, GpuMat(), keypoints_gpu_1, descriptors_gpu_1, true);
-	surf(gray_image_gpu_2, GpuMat(), keypoints_gpu_2, descriptors_gpu_2, true);
-
-	surf.downloadKeypoints(keypoints_gpu_1, keypoints_1);
-	surf.downloadKeypoints(keypoints_gpu_2, keypoints_2);
-	descriptors_gpu_1.download(descriptors_1);
-	descriptors_gpu_2.download(descriptors_2);
-
-	image_gpu_1.release();
-	image_gpu_2.release();
-	gray_image_gpu_1.release();
-	gray_image_gpu_2.release();
-	keypoints_gpu_1.release();
-	keypoints_gpu_2.release();
-	descriptors_gpu_1.release();
-	descriptors_gpu_2.release();
-	surf.releaseMemory();
-
-	cout << "特征点提取耗时: " << ((getTickCount() - t) / getTickFrequency()) << " sec\n" << endl;
-
-	//图像匹配
-	cout << "特征点匹配" << endl;
-	t = getTickCount();
-	MatchesInfo matches_info;
-	vector<vector<DMatch>> pair_matches;
-	set<pair<int, int>> matches;
-	descriptors_gpu_1.upload(descriptors_1);
-	descriptors_gpu_2.upload(descriptors_2);
-	Ptr<cuda::DescriptorMatcher> matcher = cuda::DescriptorMatcher::createBFMatcher(NORM_L1);
-
-	pair_matches.clear();
-	matcher->knnMatch(descriptors_gpu_1, descriptors_gpu_2, pair_matches, 2);
-	for (size_t i = 0; i < pair_matches.size(); i++)
-	{
-		const DMatch& m0 = pair_matches[i][0];
-		const DMatch& m1 = pair_matches[i][1];
-		if (m0.distance < (1.f - match_conf) * m1.distance)
-		{
-			matches_info.matches.push_back(m0);
-			matches.insert(make_pair(m0.queryIdx, m0.trainIdx));
-		}
-	}
-
-	pair_matches.clear();
-	matcher->knnMatch(descriptors_gpu_2, descriptors_gpu_1, pair_matches, 2);
-	for (size_t i = 0; i < pair_matches.size(); ++i)
-	{
-		if (pair_matches[i].size() < 2)
-			continue;
-		const DMatch& m0 = pair_matches[i][0];
-		const DMatch& m1 = pair_matches[i][1];
-		if (m0.distance < (1.f - match_conf) * m1.distance)
-			if (matches.find(std::make_pair(m0.trainIdx, m0.queryIdx)) == matches.end())
-				matches_info.matches.push_back(DMatch(m0.trainIdx, m0.queryIdx, m0.distance));
-	}
-
-	descriptors_gpu_1.release();
-	descriptors_gpu_2.release();
-	vector<vector<DMatch>>().swap(pair_matches);
-	matcher.release();
-	cout << "特征点匹配耗时: " << ((getTickCount() - t) / getTickFrequency()) << " sec\n" << endl;
-	//Mat first_match;
-	//drawMatches(image_1, keypoints_1, image_2, keypoints_2, matches_info.matches, first_match);
-	//imshow("first_match ", first_match);
-	//waitKey();
-
-	cout << "图像配准" << endl;
-	t = getTickCount();
-	Mat src_points(1, static_cast<int>(matches_info.matches.size()), CV_32FC2);
-	Mat dst_points(1, static_cast<int>(matches_info.matches.size()), CV_32FC2);
-	for (size_t i = 0; i < matches_info.matches.size(); i++)
-	{
-		const DMatch& m = matches_info.matches[i];
-
-		Point2f p = keypoints_2[m.trainIdx].pt;
-		src_points.at<Point2f>(0, static_cast<int>(i)) = p;
-
-		p = keypoints_1[m.queryIdx].pt;
-		dst_points.at<Point2f>(0, static_cast<int>(i)) = p;
-	}
-	matches_info.H = findHomography(src_points, dst_points, RANSAC);
-
-	//计算配准图的四个顶点坐标
-	CalcCorners(matches_info.H, image_2);
-
-	//图像配准  
-	Mat imageTransform1, imageTransform2;
-	cv::warpPerspective(image_2, imageTransform2, matches_info.H, Size(MAX(corners.right_top.x, corners.right_bottom.x), image_1.rows));
-	cout << "图像配准耗时: " << ((getTickCount() - t) / getTickFrequency()) << " sec\n" << endl;
-	//imshow("直接经过透视矩阵变换", imageTransform2);
-	//waitKey();
-	imwrite("trans_pic.jpg", imageTransform2);
-
-	cout << "图像拼接" << endl;
-	t = getTickCount();
-	//创建拼接后的图,需提前计算图的大小
-	int dst_width = imageTransform2.cols;  
-	int dst_height = image_1.rows;
-
-	Mat dst(dst_height, dst_width, CV_8UC3);
-	dst.setTo(0);
-
-	imageTransform2.copyTo(dst(Rect(0, 0, imageTransform2.cols, imageTransform2.rows)));
-	image_1.copyTo(dst(Rect(0, 0, image_1.cols, image_1.rows)));
-	//imshow("dst_1", dst);
-	//waitKey();
-	imwrite("dst1.jpg", dst);
-
-
-	OptimizeSeam(image_1, imageTransform2, dst);
-	cout << "图像拼接耗时: " << ((getTickCount() - t) / getTickFrequency()) << " sec\n" << endl;
-	//imshow("dst_2", dst);
-	//waitKey();
-	imwrite("dst2.jpg", dst);
-	cout << "总耗时: " << ((getTickCount() - app_start_time) / getTickFrequency()) << " sec" << endl;
-	getchar();
-
-	return 0;
-}
 
 void CalcCorners(const Mat& H, const Mat& src)
 {
@@ -234,6 +112,164 @@ void CalcCorners(const Mat& H, const Mat& src)
 	corners.right_bottom.x = v1[0] / v1[2];
 	corners.right_bottom.y = v1[1] / v1[2];
 
+}
+
+int main(void)
+{
+	int64 app_start_time = getTickCount();
+	img_names.push_back("E:\\opencv_git\\my_stitching\\my_stitching\\image\\test1.jpg");
+	img_names.push_back("E:\\opencv_git\\my_stitching\\my_stitching\\image\\test2.jpg");
+	int num_images = static_cast<int>(img_names.size());
+	if (num_images < 2)
+	{
+		cout << "Need more images" << endl;
+		return -1;
+	}
+	double work_scale = 1;
+	bool is_work_scale_set = false;
+
+	//寻找特征点
+	cout << "特征点提取" << endl;
+	int64 t = getTickCount();
+	Ptr<FeaturesFinder> finder;
+	if (try_cuda)
+		finder = makePtr<SurfFeaturesFinderGpu>();
+	else
+		finder = makePtr<SurfFeaturesFinder>();
+
+
+	Mat full_img;
+	vector<ImageFeatures> features(num_images);
+	vector<Mat> images(num_images);
+	vector<Size> full_img_sizes(num_images);
+	double seam_work_aspect = 1;
+	for (int i = 0; i < num_images; i++)
+	{
+		//full_img = imread(img_names[i]);
+		////imshow("原图", full_img);
+		//full_img_sizes[i] = full_img.size();
+		//if (full_img.empty())
+		//{
+		//	cout << "Can't open image " + img_names[i] << endl;
+		//	return -1;
+		//}
+
+		//if (work_megapix < 0)
+		//{
+		//	img = full_img;
+		//	work_scale = 1;
+		//	is_work_scale_set = true;
+		//}
+		//else
+		//{
+		//	if (!is_work_scale_set)
+		//	{
+		//		work_scale = min(1.0, sqrt(work_megapix * 1e6 / full_img.size().area()));
+		//		is_work_scale_set = true;
+		//	}
+		//	//面积大于work_megapix*100000的图片，长宽调整为原来的work_scale倍
+		//	resize(full_img, img, Size(), work_scale, work_scale, INTER_LINEAR_EXACT);
+		//	//imshow("压缩1", img);
+		//}
+
+		////计算特征点
+		//(*finder)(img, features[i]);
+		//features[i].img_idx = i;
+		//cout << "Features in image #" << i + 1 << ": " << features[i].keypoints.size() << endl;
+		//images[i] = img.clone();
+
+		full_img = imread(img_names[i]);
+		(*finder)(full_img, features[i]);
+		features[i].img_idx = i;
+		images[i] = full_img.clone();
+	}
+	finder->collectGarbage();
+	full_img.release();
+	//img.release();
+	cout << "特征点提取耗时: " << ((getTickCount() - t) / getTickFrequency()) << " sec\n" << endl;
+
+	//图像匹配
+	cout << "特征点匹配" << endl;
+	t = getTickCount();
+	vector<MatchesInfo> pairwise_matches;
+	Ptr<FeaturesMatcher> matcher;
+	if (matcher_type == "affine")
+	{
+		matcher = makePtr<AffineBestOf2NearestMatcher>(false, try_cuda, match_conf);
+	}
+	else if (range_width == -1)
+	{
+		//最近邻和次近邻法
+		matcher = makePtr<BestOf2NearestMatcher>(try_cuda, match_conf);
+	}
+	else
+	{
+		matcher = makePtr<BestOf2NearestRangeMatcher>(range_width, try_cuda, match_conf);
+	}
+	(*matcher)(features, pairwise_matches);
+	matcher->collectGarbage();
+	cout << "特征点匹配耗时: " << ((getTickCount() - t) / getTickFrequency()) << " sec\n" << endl;
+
+	Mat first_match;
+	drawMatches(images[0], features[0].keypoints, images[1], features[1].keypoints, pairwise_matches[1].matches, first_match);
+	//imshow("first_match ", first_match);
+	//waitKey();
+
+	cout << "图像配准" << endl;
+	t = getTickCount();
+	vector<Point2f> imagePoints1, imagePoints2;
+	for (int i = 0; i < pairwise_matches[1].matches.size(); i++)
+	{
+		imagePoints1.push_back(features[0].keypoints[pairwise_matches[1].matches[i].queryIdx].pt);
+		imagePoints2.push_back(features[1].keypoints[pairwise_matches[1].matches[i].trainIdx].pt);
+	}
+
+	//获取图像1到图像2的投影映射矩阵 尺寸为3*3  
+	Mat homo = findHomography(imagePoints2, imagePoints1, CV_RANSAC);
+	//输出映射矩阵   
+	//cout << "变换矩阵为：\n" << homo << endl << endl;    
+
+	//计算配准图的四个顶点坐标
+	CalcCorners(homo, images[1]);
+	//cout << "left_top:" << corners.left_top;
+	//cout << " left_bottom:" << corners.left_bottom;
+	//cout << " right_top:" << corners.right_top;
+	//cout << " right_bottom:" << corners.right_bottom;
+
+	//图像配准  
+	Mat imageTransform1, imageTransform2;
+	warpPerspective(images[1], imageTransform2, homo, Size(MAX(corners.right_top.x, corners.right_bottom.x), images[0].rows));
+	cout << "图像配准耗时: " << ((getTickCount() - t) / getTickFrequency()) << " sec\n" << endl;
+	//imshow("直接经过透视矩阵变换", imageTransform2);
+	//waitKey();
+	imwrite("trans_pic.jpg", imageTransform2);
+
+	cout << "图像拼接" << endl;
+	t = getTickCount();
+	//创建拼接后的图,需提前计算图的大小
+	int dst_width = imageTransform2.cols;  //取最右点的长度为拼接图的长度
+	int dst_height = images[0].rows;
+
+	Mat dst(dst_height, dst_width, CV_8UC3);
+	dst.setTo(0);
+
+	imageTransform2.copyTo(dst(Rect(0, 0, imageTransform2.cols, imageTransform2.rows)));
+	images[0].copyTo(dst(Rect(0, 0, images[0].cols, images[0].rows)));
+
+	//imshow("b_dst", dst);
+	//waitKey();
+	imwrite("dst1.jpg", dst);
+
+
+	OptimizeSeam(images[0], imageTransform2, dst);
+	cout << "图像拼接耗时: " << ((getTickCount() - t) / getTickFrequency()) << " sec\n" << endl;
+
+	//imshow("dst", dst);
+	imwrite("dst2.jpg", dst);
+	cout << "总耗时: " << ((getTickCount() - app_start_time) / getTickFrequency()) << " sec" << endl;
+	getchar();
+
+	return 0;
 }
 
 //优化两图的连接处，使得拼接自然

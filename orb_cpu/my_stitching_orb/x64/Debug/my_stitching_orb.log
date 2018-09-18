@@ -1,0 +1,26 @@
+﻿生成启动时间为 2018/9/13 19:10:26。
+     1>项目“E:\opencv\my_stitching_orb\my_stitching_orb\my_stitching_orb.vcxproj”在节点 2 上(Build 个目标)。
+     1>ClCompile:
+         D:\VisualStudioCommunity2015\VC\bin\x86_amd64\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"x64\Debug\\" /Fd"x64\Debug\vc140.pdb" /Gd /TP /errorReport:prompt main.cpp
+         main.cpp
+     1>e:\opencv\my_stitching_orb\my_stitching_orb\main.cpp(193): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
+     1>e:\opencv\my_stitching_orb\my_stitching_orb\main.cpp(230): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\opencv\my_stitching_orb\my_stitching_orb\main.cpp(231): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\opencv\my_stitching_orb\my_stitching_orb\main.cpp(240): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\opencv\my_stitching_orb\my_stitching_orb\main.cpp(241): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\opencv\my_stitching_orb\my_stitching_orb\main.cpp(250): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\opencv\my_stitching_orb\my_stitching_orb\main.cpp(251): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\opencv\my_stitching_orb\my_stitching_orb\main.cpp(260): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\opencv\my_stitching_orb\my_stitching_orb\main.cpp(261): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\opencv\my_stitching_orb\my_stitching_orb\main.cpp(268): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
+     1>e:\opencv\my_stitching_orb\my_stitching_orb\main.cpp(292): warning C4244: “=”: 从“double”转换到“uchar”，可能丢失数据
+     1>e:\opencv\my_stitching_orb\my_stitching_orb\main.cpp(293): warning C4244: “=”: 从“double”转换到“uchar”，可能丢失数据
+     1>e:\opencv\my_stitching_orb\my_stitching_orb\main.cpp(294): warning C4244: “=”: 从“double”转换到“uchar”，可能丢失数据
+       Link:
+         D:\VisualStudioCommunity2015\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"E:\opencv\my_stitching_orb\x64\Debug\my_stitching_orb.exe" /INCREMENTAL /NOLOGO cudart.lib opencv_world340d.lib opencv_img_hash340d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /Debug /PDB:"E:\opencv\my_stitching_orb\x64\Debug\my_stitching_orb.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\opencv\my_stitching_orb\x64\Debug\my_stitching_orb.lib" /MACHINE:X64 x64\Debug\main.obj
+         my_stitching_orb.vcxproj -> E:\opencv\my_stitching_orb\x64\Debug\my_stitching_orb.exe
+     1>已完成生成项目“E:\opencv\my_stitching_orb\my_stitching_orb\my_stitching_orb.vcxproj”(Build 个目标)的操作。
+
+已成功生成。
+
+已用时间 00:00:01.70
