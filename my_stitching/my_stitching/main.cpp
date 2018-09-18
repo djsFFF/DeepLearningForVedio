@@ -117,8 +117,8 @@ void CalcCorners(const Mat& H, const Mat& src)
 int main(void)
 {
 	int64 app_start_time = getTickCount();
-	img_names.push_back("E:\\opencv_git\\my_stitching\\my_stitching\\image\\test1.jpg");
-	img_names.push_back("E:\\opencv_git\\my_stitching\\my_stitching\\image\\test2.jpg");
+	img_names.push_back("image\\test1.jpg");
+	img_names.push_back("image\\test2.jpg");
 	int num_images = static_cast<int>(img_names.size());
 	if (num_images < 2)
 	{

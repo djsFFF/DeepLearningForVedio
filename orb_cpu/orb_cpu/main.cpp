@@ -35,16 +35,16 @@ int main(void)
 	vector<Mat> images;
 
 	//600*800
-	images.push_back(imread("E:\\opencv_git\\orb_cpu\\orb_cpu\\image\\test1.jpg"));
-	images.push_back(imread("E:\\opencv_git\\orb_cpu\\orb_cpu\\image\\test2.jpg"));
-	images.push_back(imread("E:\\opencv_git\\orb_cpu\\orb_cpu\\image\\test1.jpg"));
-	images.push_back(imread("E:\\opencv_git\\orb_cpu\\orb_cpu\\image\\test2.jpg"));
-	images.push_back(imread("E:\\opencv_git\\orb_cpu\\orb_cpu\\image\\test1.jpg"));
-	images.push_back(imread("E:\\opencv_git\\orb_cpu\\orb_cpu\\image\\test2.jpg"));
-	images.push_back(imread("E:\\opencv_git\\orb_cpu\\orb_cpu\\image\\test1.jpg"));
-	images.push_back(imread("E:\\opencv_git\\orb_cpu\\orb_cpu\\image\\test2.jpg"));
-	images.push_back(imread("E:\\opencv_git\\orb_cpu\\orb_cpu\\image\\test1.jpg"));
-	images.push_back(imread("E:\\opencv_git\\orb_cpu\\orb_cpu\\image\\test2.jpg"));
+	images.push_back(imread("image\\test1.jpg"));
+	images.push_back(imread("image\\test2.jpg"));
+	images.push_back(imread("image\\test1.jpg"));
+	images.push_back(imread("image\\test2.jpg"));
+	images.push_back(imread("image\\test1.jpg"));
+	images.push_back(imread("image\\test2.jpg"));
+	images.push_back(imread("image\\test1.jpg"));
+	images.push_back(imread("image\\test2.jpg"));
+	images.push_back(imread("image\\test1.jpg"));
+	images.push_back(imread("image\\test2.jpg"));
 
 
 	////1280*720

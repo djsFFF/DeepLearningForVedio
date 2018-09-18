@@ -29,29 +29,30 @@ int main(void)
 	SURF_CUDA surf;
 
 	vector<Mat> images;
+
 	//600*800
-	images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\test1.jpg"));
-	images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\test2.jpg"));
-	images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\test1.jpg"));
-	images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\test2.jpg"));
-	images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\test1.jpg"));
-	images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\test2.jpg"));
-	images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\test1.jpg"));
-	images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\test2.jpg"));
-	images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\test1.jpg"));
-	images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\test2.jpg"));
+	images.push_back(imread("image\\test1.jpg"));
+	images.push_back(imread("image\\test2.jpg"));
+	images.push_back(imread("image\\test1.jpg"));
+	images.push_back(imread("image\\test2.jpg"));
+	images.push_back(imread("image\\test1.jpg"));
+	images.push_back(imread("image\\test2.jpg"));
+	images.push_back(imread("image\\test1.jpg"));
+	images.push_back(imread("image\\test2.jpg"));
+	images.push_back(imread("image\\test1.jpg"));
+	images.push_back(imread("image\\test2.jpg"));
 
 	////1280*720
-	//images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\image1.jpg"));
-	//images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\image2.jpg"));
-	//images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\image1.jpg"));
-	//images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\image2.jpg"));
-	//images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\image1.jpg"));
-	//images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\image2.jpg"));
-	//images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\image1.jpg"));
-	//images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\image2.jpg"));
-	//images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\image1.jpg"));
-	//images.push_back(imread("E:\\opencv_git\\surf_gpu\\surf_gpu\\image\\image2.jpg"));
+	//images.push_back(imread("image\\image1.jpg"));
+	//images.push_back(imread("image\\image2.jpg"));
+	//images.push_back(imread("image\\image1.jpg"));
+	//images.push_back(imread("image\\image2.jpg"));
+	//images.push_back(imread("image\\image1.jpg"));
+	//images.push_back(imread("image\\image2.jpg"));
+	//images.push_back(imread("image\\image1.jpg"));
+	//images.push_back(imread("image\\image2.jpg"));
+	//images.push_back(imread("image\\image1.jpg"));
+	//images.push_back(imread("image\\image2.jpg"));
 
 	for (int n = 0; n < images.size(); n += 2)
 	{
